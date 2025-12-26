@@ -162,14 +162,12 @@ jobs:
           echo "Cloning AnyKernel3 and other dependencies..."
 
           ANYKERNEL_BRANCH="gki-2.0"
-          SUSFS_BRANCH="gki-${{ inputs.android_version }}-${{ inputs.kernel_version }}"
 
           # Debug print the branches
           echo "Using branch for SUSFS: $SUSFS_BRANCH"
 
           # Clone repositories using the branch names
           git clone https://github.com/WildPlusKernel/AnyKernel3.git -b "$ANYKERNEL_BRANCH"
-          git clone https://gitlab.com/simonpunk/susfs4ksu.git -b "$SUSFS_BRANCH"
           git clone https://github.com/WildPlusKernel/kernel_patches.git
           # Sukisu的补丁仓库
           git clone https://github.com/ShirkNeko/SukiSU_patch.git
@@ -299,29 +297,6 @@ jobs:
             sed -n '50,70p' ./kernel/Makefile
           fi
 
-      - name: 为 KernelSU 变体安装 SUSFS 补丁
-        run: |
-          echo "更改为配置目录: $CONFIG..."
-          cd "$CONFIG"
-
-          echo "Applying SUSFS patches..."
-
-          # Copy SUSFS patches
-          cp ../susfs4ksu/kernel_patches/50_add_susfs_in_gki-${{ inputs.android_version }}-${{ inputs.kernel_version }}.patch ./common/
-          cp ../susfs4ksu/kernel_patches/fs/* ./common/fs/
-          cp ../susfs4ksu/kernel_patches/include/linux/* ./common/include/linux/
-
-          if [ "${{ inputs.kernelsu_variant }}" == "Official" ]; then
-            echo "Applying SUSFS patches for Official KernelSU..."
-            cd ./KernelSU
-            cp ../../susfs4ksu/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch ./ 
-            patch -p1 --forward < 10_enable_susfs_for_ksu.patch || true
-
-            # echo "Applying Official specific patches..."
-            # cp ../../zzh_patch/mksu_core_hook.c.patch ./
-            # patch -p1 --fuzz=3 < mksu_core_hook.c.patch
-
-          elif [ "${{ inputs.kernelsu_variant }}" == "Next" ]; then
             # 临时恢复KSU-NEXT的dev编译
             echo "Applying SUSFS patches for KernelSU-Next..."
             cd ./KernelSU-Next
@@ -588,41 +563,6 @@ jobs:
             grep "baseband_guard" common/security/Kconfig
           fi
 
-      - name: 添加SUSFS配置设置
-        run: |
-          echo "更改为配置目录: $CONFIG..."
-          cd "$CONFIG"
-          echo "Adding configuration settings to gki_defconfig..."
-
-          # Add KSU configuration settings
-          echo "CONFIG_KSU=y" >> ./common/arch/arm64/configs/gki_defconfig
-
-          if [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
-            echo "CONFIG_KPM=y" >> ./common/arch/arm64/configs/gki_defconfig
-          fi
-          
-          # Add SUSFS configuration settings
-          echo "CONFIG_KSU_SUSFS=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_SUS_PATH=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_SUS_MOUNT=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_AUTO_ADD_SUS_KSU_DEFAULT_MOUNT=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_AUTO_ADD_SUS_BIND_MOUNT=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_SUS_KSTAT=y" >> ./common/arch/arm64/configs/gki_defconfig
-          
-          echo "CONFIG_KSU_SUSFS_TRY_UMOUNT=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_AUTO_ADD_TRY_UMOUNT_FOR_BIND_MOUNT=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_SPOOF_UNAME=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_ENABLE_LOG=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_OPEN_REDIRECT=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_SUS_MAP=y" >> ./common/arch/arm64/configs/gki_defconfig
-          
-          # Remove check_defconfig
-          sed -i 's/check_defconfig//' ./common/build.config.gki
-
-          # 用于debug config
-          tail -n 40 ./common/arch/arm64/configs/gki_defconfig
 
       - name: 配置内核构时间/删除dirty字符
         run: |
