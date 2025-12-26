@@ -414,6 +414,18 @@ jobs:
               fi
             fi
           fi
+      - name: 添加 Unicode Bypass 补丁
+        run: |
+          echo "更改为配置目录: $CONFIG..."
+          cd "$CONFIG/common"
+          echo "下载 Unicode Bypass 补丁..."
+          # 下载补丁文件
+          curl -LSs "https://raw.githubusercontent.com/ITxiao6666/Unicode_bypass_Fix/main/unicode_bypass_fix_5.10-6.1.patch" -o unicode_bypass_fix.patch
+          
+          echo "正在应用 Unicode Bypass 补丁..."
+          # 应用补丁。如果没有成功（例如版本不匹配），脚本会在此处报错并红灯停止
+          patch -p1 --fuzz=3 < unicode_bypass_fix.patch
+
       
       - name: 升级LZ4至1.10.0
         if: ${{ inputs.use_zram }}
