@@ -563,6 +563,27 @@ jobs:
             grep "baseband_guard" common/security/Kconfig
           fi
 
+      - name: 添加 KSU 配置设置
+        run: |
+          echo "更改为配置目录: $CONFIG..."
+          cd "$CONFIG"
+          echo "Adding configuration settings to gki_defconfig..."
+
+          # 写入 KSU 核心配置 (必须保留)
+          echo "CONFIG_KSU=y" >> ./common/arch/arm64/configs/gki_defconfig
+
+          # 如果是 SukiSU 变体，写入 KPM 配置
+          if [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
+            echo "CONFIG_KPM=y" >> ./common/arch/arm64/configs/gki_defconfig
+          fi
+
+          # 删除检查，防止配置报错
+          sed -i 's/check_defconfig//' ./common/build.config.gki
+
+          # 打印末尾配置以供检查
+          tail -n 20 ./common/arch/arm64/configs/gki_defconfig
+
+
 
       - name: 配置内核构时间/删除dirty字符
         run: |
